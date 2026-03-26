@@ -26,13 +26,12 @@
         #col-detail { flex: 1; border-right: none; }
 
         .item { padding: 15px 12px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between; }
-        .item:active { background: #eceff1; }
+        .item:hover { background: #f1f3f4; }
         .item.active { background: #e8f0fe; color: var(--primary); font-weight: bold; border-left: 4px solid var(--primary); }
 
         iframe { width: 100%; height: 100%; border: none; }
 
-        /* 로딩 애니메이션 */
-        #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:white; display:flex; justify-content:center; align-items:center; z-index:9999; font-weight:bold; }
+        #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:white; display:flex; justify-content:center; align-items:center; z-index:9999; font-weight:bold; flex-direction: column; gap: 10px; }
 
         @media (max-width: 768px) {
             main { flex-direction: column; overflow-y: auto; }
@@ -48,12 +47,15 @@
 </head>
 <body>
 
-    <div id="loading">데이터를 불러오는 중입니다...</div>
+    <div id="loading">
+        <div>데이터를 불러오는 중입니다...</div>
+        <div style="font-size:0.8rem; color:#888;">잠시만 기다려주세요.</div>
+    </div>
 
     <header>
         <div class="logo">안성여고 교육과정 박람회</div>
         <ul class="nav">
-            <li onclick="location.reload()" style="border-color:white;">새로고침</li>
+            <li onclick="location.reload()" style="border: 1px solid white;">새로고침</li>
             <li><button class="login-btn" onclick="openLogin()">로그인</button></li>
         </ul>
     </header>
@@ -83,69 +85,69 @@
             <p style="font-size:0.8rem; color:red;">※ 데이터 수정은 구글 시트에서 진행해 주세요.</p>
             <input type="text" id="uid" placeholder="아이디">
             <input type="password" id="upw" placeholder="비밀번호">
-            <button style="width:100%; padding:12px; background:#1a73e8; color:white; border:none; border-radius:6px;" onclick="doLogin()">로그인</button>
-            <button onclick="closeLogin()" style="width:100%; background:none; border:none; margin-top:10px; color:#666;">닫기</button>
+            <button style="width:100%; padding:12px; background:#1a73e8; color:white; border:none; border-radius:6px; cursor:pointer;" onclick="doLogin()">로그인</button>
+            <button onclick="closeLogin()" style="width:100%; background:none; border:none; margin-top:10px; color:#666; cursor:pointer;">닫기</button>
         </div>
     </div>
 
     <script>
-// 🔗 1. 본인의 구글 시트 CSV URL을 정확히 넣으세요.
-// 형식 예시: https://docs.google.com/spreadsheets/d/e/XXXXX/pub?output=csv
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTDcg_fN_hIBGnVCsZzn3iprxtzdKknxeR9b1cLQykgUSSXe2K5m8-7ph7uJxHPq8sfZ2Nv5aVb4wOe/pub?output=csv";
+        // 🔗 1. 구글 시트 CSV 웹 게시 URL
+        const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTDcg_fN_hIBGnVCsZzn3iprxtzdKknxeR9b1cLQykgUSSXe2K5m8-7ph7uJxHPq8sfZ2Nv5aVb4wOe/pub?output=csv";
 
-let db = []; 
-let curGroupIdx = null;
+        let db = []; 
+        let curGroupIdx = null;
 
-async function fetchSheetData() {
-    try {
-        const response = await fetch(SHEET_CSV_URL);
-        if (!response.ok) throw new Error("네트워크 응답에 문제가 있습니다.");
-        
-        const data = await response.text();
-        
-        // CSV 줄바꿈 처리 (윈도우/맥/리눅스 공통 대응)
-        const rows = data.split(/\r?\n/);
-        const groupedData = {};
+        // 2. 데이터 가져오기 및 파싱
+        async function fetchSheetData() {
+            const loadingEl = document.getElementById('loading');
+            try {
+                const response = await fetch(SHEET_CSV_URL);
+                if (!response.ok) throw new Error("네트워크 응답 없음");
+                
+                const csvData = await response.text();
+                
+                // 줄바꿈 처리 및 빈 행 제거
+                const rows = csvData.split(/\r?\n/).filter(row => row.trim() !== "");
+                const groupedData = {};
 
-        // 2열(인덱스 1)부터 데이터 시작
-        for (let i = 1; i < rows.length; i++) {
-            if (!rows[i].trim()) continue; // 빈 줄 건너뛰기
+                // 2행(index 1)부터 데이터 처리
+                for (let i = 1; i < rows.length; i++) {
+                    // CSV 파싱 정규식: 쉼표로 분리하되 따옴표 안의 쉼표는 무시
+                    const cols = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    
+                    if (cols.length >= 3) {
+                        const groupName = cols[0].replace(/^"|"$/g, "").trim();   // A: 교과군
+                        const subjectName = cols[1].replace(/^"|"$/g, "").trim(); // B: 과목명
+                        const fileName = cols[2].replace(/^"|"$/g, "").trim();    // C: 파일명
 
-            // 쉼표로 분리 (데이터 내부에 쉼표가 있을 경우를 대비한 정규식)
-            const cols = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-            
-            if (cols.length >= 3) {
-                const groupName = cols[0].replace(/"/g, "").trim();   // A열: 교과군
-                const subjectName = cols[1].replace(/"/g, "").trim(); // B열: 과목명
-                const fileName = cols[2].replace(/"/g, "").trim();    // C열: 파일명
+                        if (!groupName || !subjectName) continue;
 
-                if (!groupName || !subjectName) continue;
-
-                if (!groupedData[groupName]) {
-                    groupedData[groupName] = { name: groupName, subjects: [] };
+                        if (!groupedData[groupName]) {
+                            groupedData[groupName] = { name: groupName, subjects: [] };
+                        }
+                        
+                        groupedData[groupName].subjects.push({ 
+                            n: subjectName, 
+                            url: "pdfs/" + fileName 
+                        });
+                    }
                 }
-                // PDF 폴더 경로와 합침
-                groupedData[groupName].subjects.push({ 
-                    n: subjectName, 
-                    url: "pdfs/" + fileName 
-                });
+
+                db = Object.values(groupedData);
+                
+                if (db.length === 0) {
+                    loadingEl.innerHTML = "시트에 데이터가 없거나 형식이 맞지 않습니다.<br>A열:교과군, B열:과목명, C열:파일명을 확인하세요.";
+                } else {
+                    renderGroups();
+                    loadingEl.style.display = 'none';
+                }
+            } catch (error) {
+                console.error("실패:", error);
+                loadingEl.innerText = "데이터 로드 에러: " + error.message;
             }
         }
 
-        db = Object.values(groupedData);
-        
-        if (db.length === 0) {
-            document.getElementById('loading').innerText = "불러올 데이터가 없습니다. 시트를 확인해주세요.";
-        } else {
-            renderGroups();
-            document.getElementById('loading').style.display = 'none';
-        }
-    } catch (error) {
-        console.error("데이터 로드 실패:", error);
-        document.getElementById('loading').innerText = "에러 발생: " + error.message;
-    }
-}
-
+        // 3. 교과군 목록 렌더링
         function renderGroups() {
             const container = document.getElementById('group-list');
             container.innerHTML = db.map((g, i) => `
@@ -156,6 +158,7 @@ async function fetchSheetData() {
             `).join('');
         }
 
+        // 4. 교과군 선택 시 과목 목록 렌더링
         function selectGroup(idx) {
             curGroupIdx = idx;
             renderGroups();
@@ -167,27 +170,33 @@ async function fetchSheetData() {
                 </div>
             `).join('');
             
-            if(window.innerWidth <= 768) document.getElementById('col-subject').scrollIntoView({behavior: 'smooth'});
+            // 모바일용 스크롤
+            if(window.innerWidth <= 768) {
+                document.getElementById('col-subject').scrollIntoView({behavior: 'smooth'});
+            }
         }
 
+        // 5. 과목 선택 시 PDF 표시
         function showPDF(url, el) {
             document.querySelectorAll('#subject-list .item').forEach(i => i.classList.remove('active'));
             el.classList.add('active');
             document.getElementById('pdf-view').src = url;
 
-            if(window.innerWidth <= 768) document.getElementById('col-detail').scrollIntoView({behavior: 'smooth'});
+            if(window.innerWidth <= 768) {
+                document.getElementById('col-detail').scrollIntoView({behavior: 'smooth'});
+            }
         }
 
         function openLogin() { document.getElementById('login-modal').style.display='flex'; }
         function closeLogin() { document.getElementById('login-modal').style.display='none'; }
         function doLogin() {
             if(document.getElementById('uid').value==='admin' && document.getElementById('upw').value==='1234') {
-                alert("로그인되었습니다. 데이터 수정은 구글 시트에서 하시면 실시간으로 반영됩니다.");
+                alert("관리자 확인되었습니다. 시트에서 수정 후 새로고침하세요.");
                 closeLogin();
-            } else { alert("실패"); }
+            } else { alert("로그인 실패"); }
         }
 
-        // 페이지 로드 시 실행
+        // 페이지 시작
         fetchSheetData();
     </script>
 </body>
