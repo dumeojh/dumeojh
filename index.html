@@ -9,98 +9,70 @@
         * { box-sizing: border-box; }
         body { font-family: 'Pretendard', sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; background: var(--bg); overflow: hidden; }
 
-        /* 헤더: 모바일 대응 */
         header { background: var(--primary); color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
         .logo { font-size: 1.1rem; font-weight: bold; }
         .nav { display: flex; gap: 10px; list-style: none; margin: 0; padding: 0; }
-        .nav li { font-size: 0.85rem; cursor: pointer; padding: 5px 8px; border-radius: 4px; }
+        .nav li { font-size: 0.85rem; cursor: pointer; padding: 5px 8px; border-radius: 4px; border: 1px solid transparent; }
         .login-btn { background: white; color: var(--primary); border: none; font-weight: bold; cursor: pointer; }
 
-        /* 메인 컨테이너: 태블릿/PC는 가로, 모바일은 세로 */
         main { flex: 1; display: flex; overflow: hidden; flex-direction: row; }
 
-        /* 공통 칼럼 */
-        .column { 
-            display: flex; flex-direction: column; background: white; border-right: 1px solid var(--border);
-            transition: all 0.3s ease;
-        }
-        .column-header { 
-            background: #eee; padding: 12px; font-weight: bold; font-size: 0.9rem;
-            display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border);
-        }
+        .column { display: flex; flex-direction: column; background: white; border-right: 1px solid var(--border); transition: all 0.3s ease; }
+        .column-header { background: #eee; padding: 12px; font-weight: bold; font-size: 0.9rem; border-bottom: 1px solid var(--border); }
         .list-container { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
-        /* 1단: 교과군 (좌측 고정) */
         #col-group { flex: 0 0 160px; }
-        /* 2단: 과목 리스트 */
-        #col-subject { flex: 0 0 200px; background: #fafafa; }
-        /* 3단: PDF 뷰어 (가변) */
+        #col-subject { flex: 0 0 220px; background: #fafafa; }
         #col-detail { flex: 1; border-right: none; }
 
-        /* 리스트 아이템 스타일 (모바일 터치 최적화) */
-        .item { 
-            padding: 15px 12px; border-bottom: 1px solid #eee; cursor: pointer; 
-            font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center;
-        }
+        .item { padding: 15px 12px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between; }
         .item:active { background: #eceff1; }
         .item.active { background: #e8f0fe; color: var(--primary); font-weight: bold; border-left: 4px solid var(--primary); }
 
-        /* 관리자용 버튼 */
-        .admin-btn { font-size: 0.7rem; padding: 2px 5px; margin-left: 3px; border: 1px solid #ccc; border-radius: 3px; background: white; cursor: pointer; }
-        .add-master { background: var(--primary); color: white; border: none; padding: 5px 10px; border-radius: 4px; }
-
-        /* PDF 뷰어 */
         iframe { width: 100%; height: 100%; border: none; }
 
-        /* --- 모바일/태블릿 반응형 (768px 이하) --- */
+        /* 로딩 애니메이션 */
+        #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:white; display:flex; justify-content:center; align-items:center; z-index:9999; font-weight:bold; }
+
         @media (max-width: 768px) {
             main { flex-direction: column; overflow-y: auto; }
             .column { width: 100%; flex: none; border-right: none; border-bottom: 1px solid var(--border); height: auto; }
-            #col-group, #col-subject { min-height: 150px; max-height: 300px; }
-            #col-detail { height: 600px; } /* 모바일에서 PDF 영역 확보 */
-            .item { padding: 18px 15px; } /* 터치 영역 확대 */
+            #col-group, #col-subject { max-height: 250px; }
+            #col-detail { height: 600px; }
         }
 
-        /* 로그인 모달 */
-        #login-modal { 
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; 
-        }
+        #login-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; }
         .modal-box { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 320px; }
         .modal-box input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; }
     </style>
 </head>
 <body>
 
+    <div id="loading">데이터를 불러오는 중입니다...</div>
+
     <header>
-        <div class="logo">안성여고 교육과정</div>
+        <div class="logo">안성여고 교육과정 박람회</div>
         <ul class="nav">
-            <li id="edit-mode-btn" style="display:none; border:1px solid white;" onclick="toggleEditMode()">⚙️ 편집</li>
-            <li><button class="login-btn" id="log-btn" onclick="openLogin()">로그인</button></li>
+            <li onclick="location.reload()" style="border-color:white;">새로고침</li>
+            <li><button class="login-btn" onclick="openLogin()">로그인</button></li>
         </ul>
     </header>
 
     <main>
         <section class="column" id="col-group">
-            <div class="column-header">
-                <span>교과군</span>
-                <button class="add-master admin-ui" onclick="addGroup()" style="display:none;">+</button>
-            </div>
+            <div class="column-header">교과군</div>
             <div id="group-list" class="list-container"></div>
         </section>
 
         <section class="column" id="col-subject">
-            <div class="column-header">
-                <span>과목 선택</span>
-                <button class="add-master admin-ui" onclick="addSubject()" style="display:none;">+</button>
-            </div>
+            <div class="column-header">과목 선택</div>
             <div id="subject-list" class="list-container">
                 <p style="text-align:center; color:#999; margin-top:30px; font-size:0.8rem;">교과군을 선택하세요.</p>
             </div>
         </section>
 
         <section class="column" id="col-detail">
-            <div class="column-header">과목 상세 안내</div>
+            <div class="column-header">과목 상세 안내 (PDF)</div>
             <iframe id="pdf-view" src="about:blank"></iframe>
         </section>
     </main>
@@ -108,38 +80,66 @@
     <div id="login-modal">
         <div class="modal-box">
             <h3 style="margin:0 0 15px 0">관리자 로그인</h3>
+            <p style="font-size:0.8rem; color:red;">※ 데이터 수정은 구글 시트에서 진행해 주세요.</p>
             <input type="text" id="uid" placeholder="아이디">
             <input type="password" id="upw" placeholder="비밀번호">
-            <button class="add-master" style="width:100%; padding:12px;" onclick="doLogin()">로그인</button>
+            <button style="width:100%; padding:12px; background:#1a73e8; color:white; border:none; border-radius:6px;" onclick="doLogin()">로그인</button>
             <button onclick="closeLogin()" style="width:100%; background:none; border:none; margin-top:10px; color:#666;">닫기</button>
         </div>
     </div>
 
     <script>
-        // 초기 데이터 (실제 운영 시에는 서버 DB와 연동)
-        let db = [
-            { id: 1, name: "국어", subjects: [{ n: "화법과 작문", url: "kor1.pdf" }, { n: "언어와 매체", url: "kor2.pdf" }] },
-            { id: 2, name: "수학", subjects: [{ n: "미적분", url: "math1.pdf" }, { n: "확률과 통계", url: "math2.pdf" }] },
-            { id: 3, name: "영어", subjects: [{ n: "영어 회화", url: "eng1.pdf" }] }
-        ];
+        // 🔗 1. 본인의 구글 시트 CSV 웹 게시용 URL을 여기에 넣으세요.
+        const SHEET_CSV_URL = "여기에_본인의_구글시트_CSV_URL을_붙여넣으세요";
 
-        let isAuth = false;
+        let db = []; // 구글 시트 데이터가 저장될 배열
         let curGroupIdx = null;
 
-        // 1. 교과군 목록 표시
+        // 2. 구글 시트 데이터 가져오기 함수
+        async function fetchSheetData() {
+            try {
+                const response = await fetch(SHEET_CSV_URL);
+                const data = await response.text();
+                
+                // CSV 파싱 (첫 줄 제외)
+                const rows = data.split('\n').slice(1);
+                const groupedData = {};
+
+                rows.forEach(row => {
+                    // 쉼표로 구분된 열: A(교과군), B(과목명), C(파일명)
+                    const cols = row.split(',');
+                    if (cols.length >= 3) {
+                        const groupName = cols[0].trim();
+                        const subjectName = cols[1].trim();
+                        const fileName = cols[2].trim();
+
+                        if (!groupedData[groupName]) {
+                            groupedData[groupName] = { name: groupName, subjects: [] };
+                        }
+                        // PDF 파일이 pdfs 폴더 안에 있다고 가정
+                        groupedData[groupName].subjects.push({ n: subjectName, url: "pdfs/" + fileName });
+                    }
+                });
+
+                db = Object.values(groupedData);
+                renderGroups();
+                document.getElementById('loading').style.display = 'none';
+            } catch (error) {
+                console.error("데이터 로드 실패:", error);
+                alert("구글 시트 데이터를 불러오지 못했습니다. URL을 확인해주세요.");
+            }
+        }
+
         function renderGroups() {
             const container = document.getElementById('group-list');
             container.innerHTML = db.map((g, i) => `
                 <div class="item ${curGroupIdx === i ? 'active' : ''}" onclick="selectGroup(${i})">
                     <span>${g.name}</span>
-                    <div class="admin-ui" style="display:${isAuth ? 'block' : 'none'}">
-                        <button class="admin-btn" onclick="event.stopPropagation(); delGroup(${i})">삭제</button>
-                    </div>
+                    <span>❯</span>
                 </div>
             `).join('');
         }
 
-        // 2. 교과군 선택 -> 과목 목록 표시
         function selectGroup(idx) {
             curGroupIdx = idx;
             renderGroups();
@@ -147,72 +147,32 @@
             subContainer.innerHTML = db[idx].subjects.map((s, si) => `
                 <div class="item" onclick="showPDF('${s.url}', this)">
                     <span>${s.n}</span>
-                    <div class="admin-ui" style="display:${isAuth ? 'block' : 'none'}">
-                        <button class="admin-btn" onclick="event.stopPropagation(); delSub(${si})">삭제</button>
-                    </div>
+                    <span>❯</span>
                 </div>
             `).join('');
             
-            // 모바일 배려: 과목 영역으로 자동 스크롤
-            if(window.innerWidth <= 768) {
-                document.getElementById('col-subject').scrollIntoView({behavior: 'smooth'});
-            }
+            if(window.innerWidth <= 768) document.getElementById('col-subject').scrollIntoView({behavior: 'smooth'});
         }
 
-        // 3. 과목 선택 -> PDF 표시
         function showPDF(url, el) {
             document.querySelectorAll('#subject-list .item').forEach(i => i.classList.remove('active'));
             el.classList.add('active');
             document.getElementById('pdf-view').src = url;
 
-            if(window.innerWidth <= 768) {
-                document.getElementById('col-detail').scrollIntoView({behavior: 'smooth'});
-            }
+            if(window.innerWidth <= 768) document.getElementById('col-detail').scrollIntoView({behavior: 'smooth'});
         }
 
-        // --- 관리자 기능 ---
-        function openLogin() { 
-            if(isAuth) { if(confirm("로그아웃 할까요?")) location.reload(); }
-            else document.getElementById('login-modal').style.display='flex'; 
-        }
+        function openLogin() { document.getElementById('login-modal').style.display='flex'; }
         function closeLogin() { document.getElementById('login-modal').style.display='none'; }
-        
         function doLogin() {
             if(document.getElementById('uid').value==='admin' && document.getElementById('upw').value==='1234') {
-                isAuth = true;
-                document.getElementById('edit-mode-btn').style.display='block';
-                document.getElementById('log-btn').innerText = "로그아웃";
+                alert("로그인되었습니다. 데이터 수정은 구글 시트에서 하시면 실시간으로 반영됩니다.");
                 closeLogin();
-                alert("로그인 성공! '편집' 버튼을 눌러 관리하세요.");
             } else { alert("실패"); }
         }
 
-        function toggleEditMode() {
-            const uis = document.querySelectorAll('.admin-ui');
-            const isVisible = uis[0] && uis[0].style.display !== 'none';
-            uis.forEach(u => u.style.display = isVisible ? 'none' : 'block');
-        }
-
-        function addGroup() {
-            const n = prompt("새 교과군 이름:");
-            if(n) { db.push({id: Date.now(), name: n, subjects: []}); renderGroups(); }
-        }
-
-        function delGroup(i) { if(confirm("삭제할까요?")) { db.splice(i, 1); renderGroups(); } }
-
-        function addSubject() {
-            if(curGroupIdx === null) return alert("교과군을 먼저 선택하세요.");
-            const n = prompt("과목 이름:");
-            const u = prompt("PDF 링크:");
-            if(n) { db[curGroupIdx].subjects.push({n, url: u}); selectGroup(curGroupIdx); }
-        }
-
-        function delSub(si) {
-            if(confirm("과목을 삭제할까요?")) { db[curGroupIdx].subjects.splice(si, 1); selectGroup(curGroupIdx); }
-        }
-
-        // 실행
-        renderGroups();
+        // 페이지 로드 시 실행
+        fetchSheetData();
     </script>
 </body>
 </html>
