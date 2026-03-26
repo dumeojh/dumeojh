@@ -1,6 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 안성여고 교육과정 박람회</title>
+    <style>
+        :root { --primary: #1a73e8; --bg: #f8f9fa; --border: #e0e0e0; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Pretendard', sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; background: var(--bg); overflow: hidden; }
+
+        header { background: var(--primary); color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .logo { font-size: 1.1rem; font-weight: bold; }
+        .nav { display: flex; gap: 10px; list-style: none; margin: 0; padding: 0; }
+        .nav li { font-size: 0.85rem; cursor: pointer; padding: 5px 8px; border-radius: 4px; border: 1px solid transparent; }
+        .login-btn { background: white; color: var(--primary); border: none; font-weight: bold; cursor: pointer; }
+
+        main { flex: 1; display: flex; overflow: hidden; flex-direction: row; }
+
+        .column { display: flex; flex-direction: column; background: white; border-right: 1px solid var(--border); transition: all 0.3s ease; }
+        .column-header { background: #eee; padding: 12px; font-weight: bold; font-size: 0.9rem; border-bottom: 1px solid var(--border); }
+        .list-container { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+        #col-group { flex: 0 0 160px; }
+        #col-subject { flex: 0 0 220px; background: #fafafa; }
+        #col-detail { flex: 1; border-right: none; }
+
+        .item { padding: 15px 12px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between; }
+        .item:active { background: #eceff1; }
+        .item.active { background: #e8f0fe; color: var(--primary); font-weight: bold; border-left: 4px solid var(--primary); }
+
+        iframe { width: 100%; height: 100%; border: none; }
+
+        /* 로딩 애니메이션 */
+        #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:white; display:flex; justify-content:center; align-items:center; z-index:9999; font-weight:bold; }
+
+        @media (max-width: 768px) {
+            main { flex-direction: column; overflow-y: auto; }
+            .column { width: 100%; flex: none; border-right: none; border-bottom: 1px solid var(--border); height: auto; }
+            #col-group, #col-subject { max-height: 250px; }
+            #col-detail { height: 600px; }
+        }
+
+        #login-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-box { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 320px; }
+        .modal-box input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; }
+    </style>
+</head>
+<body>
+
+    <div id="loading">데이터를 불러오는 중입니다...</div>
+
+    <header>
+        <div class="logo">안성여고 교육과정 박람회</div>
+        <ul class="nav">
+            <li onclick="location.reload()" style="border-color:white;">새로고침</li>
+            <li><button class="login-btn" onclick="openLogin()">로그인</button></li>
+        </ul>
+    </header>
+
+    <main>
+        <section class="column" id="col-group">
+            <div class="column-header">교과군</div>
+            <div id="group-list" class="list-container"></div>
+        </section>
+
+        <section class="column" id="col-subject">
+            <div class="column-header">과목 선택</div>
+            <div id="subject-list" class="list-container">
+                <p style="text-align:center; color:#999; margin-top:30px; font-size:0.8rem;">교과군을 선택하세요.</p>
+            </div>
+        </section>
+
+        <section class="column" id="col-detail">
+            <div class="column-header">과목 상세 안내 (PDF)</div>
+            <iframe id="pdf-view" src="about:blank"></iframe>
+        </section>
+    </main>
+
+    <div id="login-modal">
+        <div class="modal-box">
+            <h3 style="margin:0 0 15px 0">관리자 로그인</h3>
+            <p style="font-size:0.8rem; color:red;">※ 데이터 수정은 구글 시트에서 진행해 주세요.</p>
+            <input type="text" id="uid" placeholder="아이디">
+            <input type="password" id="upw" placeholder="비밀번호">
+            <button style="width:100%; padding:12px; background:#1a73e8; color:white; border:none; border-radius:6px;" onclick="doLogin()">로그인</button>
+            <button onclick="closeLogin()" style="width:100%; background:none; border:none; margin-top:10px; color:#666;">닫기</button>
+        </div>
+    </div>
+
+    <script>
 // 🔗 1. 본인의 구글 시트 CSV URL을 정확히 넣으세요.
 // 형식 예시: https://docs.google.com/spreadsheets/d/e/XXXXX/pub?output=csv
-const SHEET_CSV_URL = "여기에_복사한_링크를_넣으세요";
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTDcg_fN_hIBGnVCsZzn3iprxtzdKknxeR9b1cLQykgUSSXe2K5m8-7ph7uJxHPq8sfZ2Nv5aVb4wOe/pub?output=csv";
 
 let db = []; 
 let curGroupIdx = null;
@@ -54,3 +145,50 @@ async function fetchSheetData() {
         document.getElementById('loading').innerText = "에러 발생: " + error.message;
     }
 }
+
+        function renderGroups() {
+            const container = document.getElementById('group-list');
+            container.innerHTML = db.map((g, i) => `
+                <div class="item ${curGroupIdx === i ? 'active' : ''}" onclick="selectGroup(${i})">
+                    <span>${g.name}</span>
+                    <span>❯</span>
+                </div>
+            `).join('');
+        }
+
+        function selectGroup(idx) {
+            curGroupIdx = idx;
+            renderGroups();
+            const subContainer = document.getElementById('subject-list');
+            subContainer.innerHTML = db[idx].subjects.map((s, si) => `
+                <div class="item" onclick="showPDF('${s.url}', this)">
+                    <span>${s.n}</span>
+                    <span>❯</span>
+                </div>
+            `).join('');
+            
+            if(window.innerWidth <= 768) document.getElementById('col-subject').scrollIntoView({behavior: 'smooth'});
+        }
+
+        function showPDF(url, el) {
+            document.querySelectorAll('#subject-list .item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('pdf-view').src = url;
+
+            if(window.innerWidth <= 768) document.getElementById('col-detail').scrollIntoView({behavior: 'smooth'});
+        }
+
+        function openLogin() { document.getElementById('login-modal').style.display='flex'; }
+        function closeLogin() { document.getElementById('login-modal').style.display='none'; }
+        function doLogin() {
+            if(document.getElementById('uid').value==='admin' && document.getElementById('upw').value==='1234') {
+                alert("로그인되었습니다. 데이터 수정은 구글 시트에서 하시면 실시간으로 반영됩니다.");
+                closeLogin();
+            } else { alert("실패"); }
+        }
+
+        // 페이지 로드 시 실행
+        fetchSheetData();
+    </script>
+</body>
+</html>
